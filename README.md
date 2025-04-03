@@ -325,38 +325,3 @@ Read Roadmap.md file
 | Job Scraper      | Auto-fetch jobs from known job boards via Playwright       |
 | Role UI Controls | Frontend visibility toggles based on `autho`               |
 
----
-
-## 🗓 Suggested Sprint Timeline (6 Weeks)
-
-| Sprint | Scope                                    |
-|--------|------------------------------------------|
-| Week 1 | Setup, models, DB validation             |
-| Week 2 | Auth endpoints, user CRUD                |
-| Week 3 | Company/Position CRUD + filtering logic  |
-| Week 4 | Frontend login + dashboard               |
-| Week 5 | LLM integration + data entry             |
-| Week 6 | CI/CD, testing, deployment, polish       |
-
----
-
-## ✅ Summary
-
-You now have a complete and production-ready roadmap tailored for:
-- **macOS + PyCharm**
-- Real-world database structure
-- LLM integration from day one
-- Fully testable and deployable architecture
-
----
-
-### 📌 Want More?
-
-I can provide:
-- 🧪 Prewritten test cases  
-- 🧰 Sample CRUD implementations  
-- 📐 OpenAPI docs (Swagger schema)  
-- 🧱 Dockerfile + docker-compose  
-- 📊 ERD visualization in dbdiagram format  
-
-Let me know what you’d like to generate next, and I’ll prepare it instantly.
