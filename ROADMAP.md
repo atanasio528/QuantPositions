@@ -1,362 +1,207 @@
-# Quant Position Tracker (v1.0)
 
-## Project Roadmap
+## ✅ 지금까지 구현된 인증/사용자 흐름 요약
 
-### 1. Project Goal
-
-Build a robust system to manage and track quant-related job positions, improve data entry efficiency with LLM-based parsing, and provide administrative and personal dashboards with role-based access control.
-
-### 2. 
-
-
-
-
-# Detailed Setup
-
----
-
-## 1. Environment
-
-### 1-1. Development Stack
-
-| Layer         | Tech Stack                         |
-|---------------|------------------------------------|
-| Backend       | FastAPI, SQLAlchemy, PostgreSQL    |
-| Frontend      | Next.js, Tailwind CSS              |
-| Auth          | JWT                                |
-| Parsing       | OpenAI GPT-4o API                  |
-| DevOps        | Railway (API + DB) and Vercel (FE) |
-| Testing       | Pytest, HTTPX, Faker               |
-| Other         | dotenv, Alembic, Docker (TBD)      |
-
-
-### 1-2. Local Dev Environment Setup
-
-| Component          | Tool / Setup                                |
-|--------------------|---------------------------------------------|
-| OS                 | macOS (15.4)                                |
-| IDE                | PyCharm                                     |
-| Python             | 3.12                                        |
-| DB                 | PostgreSQL                                  |
-| Package Manager    | `pip` + `virtual env`                       |
-
----
-
-## 2. Project Tree
-
-```bash
-QuantPositions/
-├── app/
-│   ├── main.py
-│   ├── database.py
-│   ├── models/
-│   ├── schemas/
-│   ├── crud/
-│   ├── routers/
-│   ├── core/
-│   └── services/
-├── sql/init/
-├── tests/
-├── .env
-├── requirements.txt
-├── README.md
-├── Dockerfile (optional)
-└── .github/workflows/
+```
+CLIENT (e.g. Postman, Frontend)
+   |
+   |  [HTTP POST /auth/signup]  (or /auth/login)
+   v
+ROUTER: auth.py
+   - Parses request body (Pydantic schema: UserCreate)
+   - Calls CRUD method (create_user or get_user_by_email)
+   v
+CRUD: users.py
+   - Interacts with DB via SQLAlchemy session
+   - Calls hash_password() from security.py
+   - Adds User model instance to DB
+   v
+MODEL: users.py
+   - SQLAlchemy ORM maps Python class ↔ PostgreSQL users table
+   v
+DATABASE: PostgreSQL
+   - Stores user row, hashed password, timestamps
 ```
 
-## 3. Database
+---
 
-### 3-1. Schema
+## 🔁 구성 요소별 역할 정리
 
-DB name: `quantpositions` <br>
-Env: Postgres SQL
-
-| Table       | Description                                         |
-|-------------|-----------------------------------------------------|
-| `users`     | Stores user account data, role, and hashed password |
-| `companies` | Stores metadata about hiring companies              |
-| `positions` | Represents open job opportunities                   |
-| `applied`   | Associative table for tracking user applications    |
+| 계층            | 파일                       | 역할 |
+|-----------------|----------------------------|------|
+| **Router**      | `routers/auth.py`          | HTTP 요청 수신, schema 파싱, 응답 반환 |
+| **Schema**      | `schemas/users.py`         | 입력/출력 데이터 구조 정의 및 검증 |
+| **CRUD Layer**  | `crud/users.py`            | DB 액세스 로직, 해싱, 커밋 등 처리 |
+| **Security**    | `core/security.py`         | 비밀번호 해싱, JWT 생성 |
+| **Model**       | `models/users.py`          | SQLAlchemy ORM → DB 테이블 구조 정의 |
+| **Database**    | `database.py`              | DB 연결, 세션 관리, Base 정의 |
+| **Framework**   | `main.py`                  | FastAPI 앱 초기화, 라우터 등록 |
+| **.env 파일**   | `.env`                     | DB URL, SECRET_KEY 보관 (보안) |
 
 ---
 
-### 3-2. Table Definitions
+## 🔄 예시: 회원가입 흐름 (`POST /auth/signup` 기준)
 
-#### 1) `users`
-
-Stores user profiles and access credentials.
-
-| Column          | Type           | Description                                                          |
-|-----------------|----------------|----------------------------------------------------------------------|
-| `usrid`         | `varchar(50)`  | Primary key — user ID                                                |
-| `email`         | `varchar(255)` | Unique, not null                                                     |
-| `first_name`    | `varchar(100)` | First name                                                           |
-| `last_name`     | `varchar(100)` | Last name                                                            |
-| `school`        | `varchar(100)` | School Info                                                          |
-| `level`         | `varchar(20)`  | Intern, NewGrad, Junior, Senior, VP                                  |
-| `password_hash` | `text`         | Securely stored password                                             |
-| `auth`          | `varchar(50)`  | User role `read`, `edit`, `admin`                                    |
-| `created_at`    | `timestamp`    | Default: now()                                                       |
-| `updated_at`    | `timestamp`    | Default: now()                                                       |
-| `cover_letter`  | `text`         | Personalized cover letter form to automate filling out cover letters |
+1. 프론트에서 회원가입 요청 (usrid, email, password 등) → `POST /auth/signup`
+2. `auth.py`에서 `UserCreate`로 body 파싱 → `crud.users.create_user()` 호출
+3. `create_user()` 내부에서:
+   - `security.hash_password()`로 비밀번호 해싱
+   - `models.User` 객체 생성 후 DB 세션에 추가
+4. DB에 유저 저장 후 새 유저 정보 반환 (e.g., `UserOut`)
 
 ---
 
-#### 2) `companies`
+## 🧠 추후 포함될 확장 흐름
 
-| Column        | Type           | Description                                |
-|---------------|----------------|--------------------------------------------|
-| `cpid`        | `varchar(50)`  | Primary key — company ID                   |
-| `cpname`      | `varchar(255)` | Company name                               |
-| `industry`    | `varchar(50)`  | Industry classification                    |
-| `importance`  | `int`          | Priority level (1=top, 2=mid, 99=optional) |
-| `headquarter` | `varchar(100)` | Location of HQ                             |
-| `created_at`  | `timestamp`    | Default: now()                             |
-| `updated_at`  | `timestamp`    | Default: now()                             |
-| `updated_by`  | `varchar(20)`  | Auditor's name (e.g., admin email)         |
-
-**Notes:**
-- cpid examples: CTDSEC - Citdadel Securities
-- Check: `industry` field must be either {`HedgeFund`, `QuantTrading`, `AssetManagement`, `InvestmentBank`, `CommercialBank`, `FinancialServices`, `Insurance`, `FinancialAdvisor`, `Fintech`, `Technology`, `Exchange`, `Consulting`, `PensionFund`, `Etc`}
+| 기능             | 흐름 예시 |
+|------------------|-----------|
+| 로그인           | `POST /auth/login` → 비밀번호 비교 → JWT 발급 |
+| 토큰 인증        | 모든 보호된 라우터에서 `Depends(get_current_user)` 사용 |
+| 사용자 정보 조회 | `GET /auth/me` → 토큰 파싱 → 유저 조회 |
+| 권한 체크        | `autho` 필드 기반 `admin`, `read` 분기 처리 |
 
 ---
 
-#### 3) `positions`
+## 🔚 요약: 전체 구성 흐름 다이어그램
 
-Represents individual job postings.
-
-| Column       | Type           | Description                           |
-|--------------|----------------|---------------------------------------|
-| `cpid`       | `varchar(50)`  | Foreign key to `companies.cpid`       |
-| `pztid`      | `varchar(50)`  | Primary key — position ID             |
-| `pztname`    | `varchar(255)` | Job title                             |
-| `pztlevel`   | `varchar(20)`  | Intern, NewGrad, Junior, Senior, VP   |
-| `year`       | `int`          | Target year - starting from May 1     |
-| `url`        | `text`         | URL to job posting                    |
-| `jd`         | `text`         | Job description (long text)           |
-| `note`       | `text`         | Additional Notes                      |
-| `active`     | `boolean`      | Whether this posting is still open    |
-| `deadline`   | `timestamp`    | Application Deadline                  |
-| `updated_by` | `varchar(100)` | Audit trail                           |
-| `created_at` | `timestamp`    | Default: now()                        |
-| `updated_at` | `timestamp`    | Default: now()                        |
-
-**Notes:**
-- cpid examples: CTDL
-- ptzid examples: 20250330_intern_1
-- created_at: decide who take the OA first using a modula operation
-- updated_at: decide the recent OAs (up to 7 days before)
-- year: define the year based on the date May 1 ( i.e. [May 1 2024, May 1 2025] = 2024 year )
-- Check: `pztlevel` in {Intern, NewGrad, Associate, Senior, VP}
-- Referenced by: `applied`
+```text
+   [Client Request]
+         |
+     FastAPI Router (auth.py)
+         |
+   Pydantic Schema (UserCreate)
+         |
+     CRUD Logic (users.py)
+         |
+   Security Utils (security.py)
+         |
+  SQLAlchemy Model (User)
+         |
+ PostgreSQL (users table)
+```
 
 ---
 
-#### 4) `applied`
-
-Tracks which users have applied to which positions.
-
-| Column       | Type                | Description                               |
-|--------------|---------------------|-------------------------------------------|
-| `usrid`      | `varchar(50)`       | Foreign key to `users.usrid`              |
-| `cpid`       | `varchar(50)`       | Foreign key to `companies.cpid`           |
-| `pztid`      | `varchar(50)`       | Foreign key to `positions.pztid`          |
-| `applied`    | `boolean`           | True if the user submitted an application |
-| `applied_at` | `timestamp`         | Time of application                       |
+아주 좋은 질문입니다.  
+당신의 프로젝트는 FastAPI 백엔드를 기반으로 한 **정형화된 계층 아키텍처**로 구성되어 있으며, **RESTful API → DB까지의 전체 흐름이 깔끔하게 이어지는 구조**입니다.
 
 ---
 
-## Constraints
+## ✅ 전체 시스템 플로우 다이어그램 (추상화)
 
-| Field       | Enum Values                                                                                                                                                                           |
-|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `users.level`, `positions.pztlevel` | Intern, NewGrad, Associate, Senior, VP                                                                                                                                                |
-| `companies.industry` | HedgeFund, QuantTrading, AssetManagement, InvestmentBank, CommercialBank, FinancialServices, Insurance, FinancialAdvisor, Fintech, Technology, Exchange, Consulting, PensionFund, Etc |
-| `companies.importance` | 1 (top tier), 2 (secondary), 99 (unranked)                                                                                                                                            |
-| `users.autho` | read, edit, admin                                                                                                                                                                     |
-
----
-
-## Detailed Project Roadmaps
-
-Read Roadmap.md file
-
-
-
-## Phase 1 – Initialization & DB Schema Setup (Completed)
-
-### Tasks:
-- [x] Initialize project structure in PyCharm.
-- [x] Create PostgreSQL schema via SQL script.
-- [x] Add sample data and validate using `review_init_db.py`.
-
-### Files:
-- `sql/init/quantpositions_schema.sql`
-- `sql/init/test/sample1.sql`
-- `sql/init/test/review_init_db.py`
-- `.env` with `DATABASE_URL`
+```text
+           [Client Request]
+                 |
+          [FastAPI Router Layer]
+                 |
+          [Pydantic Schema Layer]
+                 |
+         [CRUD (Business Logic) Layer]
+                 |
+         [SQLAlchemy ORM (Model) Layer]
+                 |
+         [PostgreSQL Database]
+```
 
 ---
 
-## 🔐 Phase 2 – Authentication & Role-Based Access
+## 🔄 실제 구현 플로우 예시별 상세 흐름
 
-### Tasks:
-- JWT-based login and signup using FastAPI's OAuth2PasswordBearer.
-- Password hashing (`passlib` / `bcrypt`).
-- User roles: `admin`, `read_only`.
-- Token generation and validation utilities.
-- Auth endpoints:
-  - `POST /auth/signup`
-  - `POST /auth/login`
-  - `GET /auth/me`
+### ✅ 1. 회원가입 (`POST /users/`)
 
-### Files:
-- `app/routers/auth.py`
-- `app/core/security.py`
-- `app/core/deps.py`
-- `app/crud/users.py`
-- `app/schemas/users.py`
-
----
-
-## 🛠️ Phase 3 – Core CRUD APIs
-
-### Tasks:
-- Implement all CRUD endpoints:
-  - `/users/`, `/companies/`, `/positions/`, `/applied/`
-- Filtering:
-  - `/positions?industry=QuantTrading&level=Intern`
-- Business Logic:
-  - `oa_first` flag logic
-- Protect endpoints by role (`Depends(get_current_user)`)
-
-### Files:
-- `app/crud/` (users.py, positions.py, companies.py, applied.py)
-- `app/routers/` (same structure)
-- `app/schemas/` (Pydantic I/O models)
-- `app/models/` (SQLAlchemy DB models)
+```text
+Request Body (UserCreate)
+     ↓
+routers/users.py → create_user()
+     ↓
+schemas.users.UserCreate → 유효성 검사
+     ↓
+crud.users.create_user()
+     ↓
+core.security.hash_password()
+     ↓
+models.users.User → DB INSERT
+     ↓
+DB 저장 후 → schemas.users.UserOut → Response
+```
 
 ---
 
-## 💻 Phase 4 – Frontend with Next.js (Planned)
+### ✅ 2. 포지션 등록 (`POST /positions/`)
 
-### Pages to Build:
-- Login / Signup
-- Dashboard (positions in the last 7 days)
-- Full DB view with sorting/filtering
-- Applied status view per user
-- URL submission + preview via LLM
-
-### Components:
-- `PositionTable.tsx`, `JobUpload.tsx`, `JobPreviewModal.tsx`, `AppliedStatus.tsx`
-
-### Notes:
-- Use `Zustand` or `React Query` for state/API
-- Use JWT in localStorage or secure HTTP-only cookie
-
----
-
-## 🤖 Phase 5 – LLM Integration for Job Parsing
-
-### Tasks:
-- Extract job title, visa, deadline, level, etc. from a job posting URL.
-- Use Playwright or BeautifulSoup to fetch HTML (optional pre-parsing).
-- Send cleaned text to GPT API.
-- Show preview table in frontend → confirm → insert to DB.
-
-### Files:
-- `app/services/llm_extraction.py`
-- `app/routers/llm.py`
-- `app/schemas/llm.py`
-
-### Endpoint:
-- `POST /llm/extract_from_url` → returns JSON with extracted fields
+```text
+Request Body (PositionCreate)
+     ↓
+routers/positions.py → create_position()
+     ↓
+schemas.positions.PositionCreate → 유효성 검사
+     ↓
+crud.positions.create_position()
+     ↓
+models.positions.Position → DB INSERT
+     ↓
+DB 저장 후 → schemas.positions.PositionOut → Response
+```
 
 ---
 
-## 🧪 Phase 6 – Testing with Pytest
+### ✅ 3. 지원 정보 등록 (`POST /applied/`)
 
-### Tasks:
-- Write unit + integration tests for:
-  - Auth (success/fail)
-  - CRUD endpoints
-  - LLM API (mocked)
-- Use `conftest.py` for:
-  - Test DB session
-  - Dependency overrides
-
-### Files:
-- `tests/conftest.py`
-- `tests/test_auth.py`
-- `tests/test_users.py`
-- `tests/test_positions.py`
-- `tests/test_llm.py` (optional)
+```text
+Request Body (AppliedCreate: usrid, pztid, applied)
+     ↓
+routers/applied.py → create_applied()
+     ↓
+schemas.applied.AppliedCreate
+     ↓
+crud.applied.create_applied()
+     ↓
+models.applied.Applied → DB INSERT (복합 PK: usrid + pztid)
+     ↓
+schemas.applied.AppliedOut → Response
+```
 
 ---
 
-## 🚀 Phase 7 – CI/CD & Deployment
+## 🧱 계층별 역할 설명
 
-### Backend:
-- Deploy FastAPI + PostgreSQL on [Railway](https://railway.app)
-- Use `.env` or Railway secrets
-- Dockerfile (if using)
-
-### Frontend:
-- Vercel auto-deploy from `main` branch
-
-### GitHub Actions:
-- Run Pytest on PR
-- Deploy if tests pass
-
-### Files:
-- `.github/workflows/backend.yml`
-- `Dockerfile`
-- `vercel.json`
+| 계층 | 파일/폴더 | 주요 책임 |
+|------|------------|------------|
+| 🌐 **Router** | `routers/*.py` | 요청 경로 등록, API 응답/예외 처리 |
+| 📦 **Schema** | `schemas/*.py` | 요청/응답 데이터 유효성 검사 |
+| ⚙️ **CRUD Logic** | `crud/*.py` | DB 읽기/쓰기 로직, 비즈니스 규칙 처리 |
+| 🧱 **ORM Model** | `models/*.py` | DB 테이블과 1:1 매핑되는 SQLAlchemy 클래스 |
+| 🗄️ **Database Layer** | `database.py` | DB 연결, 세션 관리, `Base`, `get_db()` 제공 |
+| 🔐 **Security Layer** | `core/security.py` | 해싱, JWT 토큰 생성, 검증 |
+| 🧪 **Test Layer** | `tests/` | Pytest 기반 테스트 관리 (현재 DB 연결 테스트 완료됨)
 
 ---
 
-## 🧠 Phase 8 – Advanced Features (Optional)
+## 🔄 전반적인 플로우 요약
 
-| Feature           | Details                                                   |
-|------------------|------------------------------------------------------------|
-| Email Alerts     | Notify user 3 days before application deadlines            |
-| Resume Matching  | Score JD vs Resume via LLM or similarity model             |
-| Admin Analytics  | Dashboard for job stats, company pipelines, user activity  |
-| Job Scraper      | Auto-fetch jobs from known job boards via Playwright       |
-| Role UI Controls | Frontend visibility toggles based on `autho`               |
-
----
-
-## 🗓 Suggested Sprint Timeline (6 Weeks)
-
-| Sprint | Scope                                    |
-|--------|------------------------------------------|
-| Week 1 | Setup, models, DB validation             |
-| Week 2 | Auth endpoints, user CRUD                |
-| Week 3 | Company/Position CRUD + filtering logic  |
-| Week 4 | Frontend login + dashboard               |
-| Week 5 | LLM integration + data entry             |
-| Week 6 | CI/CD, testing, deployment, polish       |
+```
+💬 API 요청
+  → 📍라우터
+    → ✅ 스키마 유효성 검사
+      → ⚙️ CRUD 비즈니스 처리
+        → 🧱 ORM 모델 사용
+          → 🗄️ PostgreSQL DB와 상호작용
+```
 
 ---
 
-## ✅ Summary
+## 💡 지금 이 구조가 실무에서 강력한 이유
 
-You now have a complete and production-ready roadmap tailored for:
-- **macOS + PyCharm**
-- Real-world database structure
-- LLM integration from day one
-- Fully testable and deployable architecture
+- **명확한 계층 분리**: 유지보수, 테스트, 확장 모두 용이
+- **모듈화**: 새로운 기능 추가 시 각 계층에만 최소한의 영향
+- **보안 기반 준비 완료**: JWT 토큰, 비밀번호 해싱 구조 확보
+- **ERD 설계 기반의 ORM**: 관계형 구조가 잘 반영되어 있음 (`users` ↔ `applied` ↔ `positions` ↔ `companies`)
 
 ---
 
-### 📌 Want More?
+필요하시면 이 전체 플로우를  
+- 📊 **다이어그램 이미지 (ASCII or Mermaid)**  
+- 📄 **README용 문서**  
+형태로도 제공 가능합니다.
 
-I can provide:
-- 🧪 Prewritten test cases  
-- 🧰 Sample CRUD implementations  
-- 📐 OpenAPI docs (Swagger schema)  
-- 🧱 Dockerfile + docker-compose  
-- 📊 ERD visualization in dbdiagram format  
-
-Let me know what you’d like to generate next, and I’ll prepare it instantly.
+어떤 형태로 저장하거나 확장하고 싶으신가요?  
+혹은 다음 작업으로 어떤 걸 해볼까요?

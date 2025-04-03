@@ -9,6 +9,7 @@ class AppliedBase(BaseModel):
 class AppliedCreate(AppliedBase):
     usrid: str
     pztid: str
+    cpid: str
 
 class AppliedUpdate(AppliedBase):
     pass

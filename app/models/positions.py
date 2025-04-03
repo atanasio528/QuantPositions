@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Integer, Boolean, Text, ForeignKey, TIMESTAMP
 from app.database import Base
+from sqlalchemy.sql import func
 
 class Position(Base):
     __tablename__ = "positions"
@@ -12,9 +13,10 @@ class Position(Base):
     url = Column(Text)
     jd = Column(Text)
     note = Column(Text)
-    recent = Column(Boolean, default=False)
     active = Column(Boolean, default=True)
-    created_at = Column(TIMESTAMP)
-    updated_at = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
     updated_by = Column(String(100))
     oa_first = Column(Boolean, default=False)
+    deadline = Column(TIMESTAMP, nullable=True)
+

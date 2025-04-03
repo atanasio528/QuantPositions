@@ -1,8 +1,13 @@
 from datetime import datetime, timedelta
 from jose import jwt
 from passlib.hash import bcrypt
+import os
+from dotenv import load_dotenv
 
-SECRET_KEY = "super-secret-key"  # 나중에 .env로 분리
+# ✅ .env에서 SECRET_KEY 가져오기
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

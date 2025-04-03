@@ -1,63 +1,66 @@
-
 -- Drop tables if they already exist
 DROP TABLE IF EXISTS applied;
 DROP TABLE IF EXISTS positions;
 DROP TABLE IF EXISTS companies;
 DROP TABLE IF EXISTS users;
 
--- Create the users table to store user information
+-- Create the users table
 CREATE TABLE users (
-    usrid VARCHAR(50) PRIMARY KEY, -- Unique user ID
-    level VARCHAR(20) CHECK (level IN ('Intern', 'NewGrad', 'Associate', 'Senior', 'VP')), -- User's seniority level
-    email VARCHAR(255) UNIQUE NOT NULL, -- User email (must be unique)
-    first_name VARCHAR(100) NOT NULL, -- User's first name
-    last_name VARCHAR(100) NOT NULL, -- User's last name
-    school VARCHAR(100), -- User's school
-    password_hash TEXT NOT NULL, -- Password (hashed)
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Account creation timestamp
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Last updated timestamp
-    autho VARCHAR(50) DEFAULT 'read' -- Authorization level (e.g. read, edit, admin)
+    usrid VARCHAR(10) PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    address_first VARCHAR(100) NOT NULL,
+    address_second VARCHAR(100) NOT NULL,
+    school VARCHAR(100),
+    level VARCHAR(10) CHECK (level IN ('Intern', 'NewGrad', 'Associate', 'Senior', 'VP')),
+    password_hash TEXT NOT NULL,
+    autho VARCHAR(50) DEFAULT 'read' CHECK (autho IN ('read', 'edit', 'admin')),
+    cover_letter TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create the companies table to store company information
+-- Create the companies table
 CREATE TABLE companies (
-    cpid VARCHAR(50) PRIMARY KEY, -- Unique company ID
-    cpname VARCHAR(255) NOT NULL, -- Company name
+    cpid VARCHAR(50) PRIMARY KEY,
+    cpname VARCHAR(255) NOT NULL,
     industry VARCHAR(50) CHECK (industry IN (
         'HedgeFund', 'QuantTrading', 'AssetManagement', 'InvestmentBank',
         'CommercialBank', 'FinancialServices', 'Insurance', 'FinancialAdvisor',
         'Fintech', 'Technology', 'Exchange', 'Consulting', 'PensionFund', 'Etc'
-    )), -- Industry category
-    importance INTEGER CHECK (importance IN (1, 2, 99)) DEFAULT 99, -- Importance rating
-    headquarter VARCHAR(100), -- Headquarter location
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Created date
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Last updated date
-    updated_by VARCHAR(100) -- Last editor
+    )),
+    importance INTEGER CHECK (importance IN (1, 2, 99)) DEFAULT 99,
+    headquarter_first VARCHAR(100),
+    headquarter_first VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(20)
 );
 
--- Create the positions table to store job position postings
+-- Create the positions table
 CREATE TABLE positions (
-    pztid VARCHAR(50) PRIMARY KEY, -- Unique position ID
-    cpid VARCHAR(50) REFERENCES companies(cpid) ON DELETE CASCADE, -- Foreign key to companies table
-    pztname VARCHAR(255) NOT NULL, -- Position title
-    pztlevel VARCHAR(20) CHECK (pztlevel IN ('Intern', 'NewGrad', 'Associate', 'Senior', 'VP')), -- Position level
-    year INTEGER NOT NULL, -- Posting year
-    url TEXT, -- URL to job description
-    jd TEXT, -- Full job description
-    note TEXT, -- Additional notes
-    recent BOOLEAN DEFAULT FALSE, -- True if created within last 7 days
-    active BOOLEAN DEFAULT TRUE, -- True if still recruiting this year
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Created timestamp
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Last updated timestamp
-    updated_by VARCHAR(100), -- Last editor
-    oa_first BOOLEAN DEFAULT FALSE -- Whether this user is first to review OA
+    pztid VARCHAR(50) PRIMARY KEY,
+    cpid VARCHAR(50) REFERENCES companies(cpid) ON DELETE CASCADE,
+    pztname VARCHAR(255) NOT NULL,
+    pztlevel VARCHAR(20) CHECK (pztlevel IN ('Intern', 'NewGrad', 'Associate', 'Senior', 'VP')),
+    year INTEGER NOT NULL,
+    url TEXT,
+    jd TEXT,
+    note TEXT,
+    active BOOLEAN DEFAULT TRUE,
+    deadline TIMESTAMP,
+    updated_by VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create the applied table to track which users have applied to which positions
+-- Create the applied table
 CREATE TABLE applied (
-    usrid VARCHAR(50) REFERENCES users(usrid) ON DELETE CASCADE, -- Foreign key to users
-    pztid VARCHAR(50) REFERENCES positions(pztid) ON DELETE CASCADE, -- Foreign key to positions
-    applied BOOLEAN DEFAULT FALSE, -- Whether the user applied
-    applied_at TIMESTAMP, -- Timestamp of application
-    PRIMARY KEY (usrid, pztid) -- Composite key
+    usrid VARCHAR(50) REFERENCES users(usrid) ON DELETE CASCADE,
+    cpid VARCHAR(50) REFERENCES companies(cpid) ON DELETE CASCADE,
+    pztid VARCHAR(50) REFERENCES positions(pztid) ON DELETE CASCADE,
+    applied BOOLEAN DEFAULT FALSE,
+    applied_at TIMESTAMP,
+    PRIMARY KEY (usrid, pztid)
 );

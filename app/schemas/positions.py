@@ -13,6 +13,7 @@ class PositionBase(BaseModel):
     active: Optional[bool] = True
     updated_by: Optional[str] = None
     oa_first: Optional[bool] = False
+    deadline: Optional[datetime] = None
 
 class PositionCreate(PositionBase):
     pztid: str

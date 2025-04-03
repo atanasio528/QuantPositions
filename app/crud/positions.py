@@ -6,8 +6,8 @@ from datetime import datetime
 def get_all_positions(db: Session):
     return db.query(Position).all()
 
-def get_position_by_id(db: Session, pztid: str):
-    return db.query(Position).filter(Position.pztid == pztid).first()
+def get_position_by_id(db: Session, cpid: str, pztid: str):
+    return db.query(Position).filter(Position.cpid == cpid, Position.pztid == pztid).first()
 
 def create_position(db: Session, position: PositionCreate):
     db_position = Position(
